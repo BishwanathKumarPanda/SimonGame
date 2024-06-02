@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simon Says</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&display=swap');
+
+        * {
+            font-family: "Poppins", sans-serif;
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --glow-rgb: 239, 42, 201;
+        }
+
+        body {
+            background: linear-gradient(145deg, rgb(119, 46, 195), rgb(58, 18, 153));
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        h1, h2 {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .btn-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            justify-items: center;
+        }
+
+        .btn {
+            height: 150px;
+            width: 150px;
+            border-radius: 20%;
+            border: 10px solid black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .red { background-color: #D10363; }
+        .yellow { background-color: #FFC55A; }
+        .green { background-color: #41B06E; }
+        .purple { background-color: #1679AB; }
+        .flash { background-color: white; }
+        .userflash { background-color: #2a2a2a; }
+
+        .instructions {
+            background-color: #fff;
+            border: 2px solid #000;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            border-radius: 15px;
+        }
+
+        .celebration {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+
+        .celebration div {
+            width: 10px;
+            height: 10px;
+            background-color: #fff;
+            position: absolute;
+            animation: sparkle 1s infinite;
+        }
+
+        @keyframes sparkle {
+            0% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(200px);
+                opacity: 0;
+            }
+        }
+
+        .hidden { display: none; }
+
+        #timer {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        #restart {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #restart:hover { background-color: #45a049; }
+        #bestScore { margin-top: 20px; font-size: 18px; }
+
+        @media (max-width: 600px) {
+            .btn {
+                height: 100px;
+                width: 100px;
+            }
+
+            .instructions {
+                padding: 10px;
+            }
+
+            #timer {
+                font-size: 16px;
+            }
+        }
+
+        .glow-point {
+            position: absolute;
+            box-shadow: 0rem 0rem 1.2rem 0.6rem rgb(var(--glow-rgb));
+            pointer-events: none;
+        }
+
+        .star {
+            position: absolute;
+            z-index: 2;
+            color: white;
+            font-size: 1rem;
+            animation-duration: 1500ms;
+            animation-fill-mode: forwards;
+            pointer-events: none;
+        }
+
+        @keyframes fall-1 {
+            0% {
+                transform: translate(0px, 0px) rotateX(45deg) rotateY(30deg) rotateZ(0deg) scale(0.25);
+                opacity: 0;
+            }
+            5% {
+                transform: translate(10px, -10px) rotateX(45deg) rotateY(30deg) rotateZ(0deg) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(25px, 200px) rotateX(180deg) rotateY(270deg) rotateZ(90deg) scale(1);
+                opacity: 0;
+            }
+        }
+
+        @keyframes fall-2 {
+            0% {
+                transform: translate(0px, 0px) rotateX(-20deg) rotateY(10deg) scale(0.25);
+                opacity: 0;
+            }
+            10% {
+                transform: translate(-10px, -5px) rotateX(-20deg) rotateY(10deg) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-10px, 160px) rotateX(-90deg) rotateY(45deg) scale(0.25);
+                opacity: 0;
+            }
+        }
+
+        @keyframes fall-3 {
+            0% {
+                transform: translate(0px, 0px) rotateX(0deg) rotateY(45deg) scale(0.5);
+                opacity: 0;
+            }
+            15% {
+                transform: translate(7px, 5px) rotateX(0deg) rotateY(45deg) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(20px, 120px) rotateX(-180deg) rotateY(-90deg) scale(0.5);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Simon Says</h1>
+    <h2>Play</h2>
+    <div class="instructions" id="instructions">
+        <h3>Instructions</h3>
+        <p>1. Click anywhere to start the game.</p>
+        <p>2. Follow the sequence of colors shown by the game.</p>
+        <p>3. Click the buttons in the correct order to advance levels.</p>
+        <p>4. You have 5 minutes to score as high as you can.</p>
+        <p>5. Press "Restart" to play again.</p>
+    </div>
+    <div id="timer">Time Left: 5:00</div>
+    <div class="btn-container">
+        <div class="btn red" type="button" id="red"></div>
+        <div class="btn yellow" type="button" id="yellow"></div>
+        <div class="btn green" type="button" id="green"></div>
+        <div class="btn purple" type="button" id="purple"></div>
+    </div>
+    <button id="restart" class="hidden">Restart</button>
+    <div id="bestScore">Best Score: 0</div>
+    <div class="celebration" id="celebration"></div>
+    <script>
+        let gameSeq = [];
+        let userSeq = [];
+        let btns = ["red", "yellow", "green", "purple"];
+        let started = false;
+        let lvl = 0;
+        let timer;
+        let timeLeft = 300; // 5 minutes in seconds
+        let bestScore = 0;
+
+        let h2 = document.querySelector("h2");
+        let timerDisplay = document.getElementById("timer");
+        let restartBtn = document.getElementById("restart");
+        let bestScoreDisplay = document.getElementById("bestScore");
+        let celebration = document.getElementById("celebration");
+        let instructions = document.getElementById("instructions");
+
+        document.addEventListener("click", function () {
+            if (!started) {
+                startGame();
+            }
+        });
+
+        restartBtn.addEventListener("click", function () {
+            resetGame();
+            startGame();
+        });
+
+        function startGame() {
+            console.log("STARTED");
+            started = true;
+            resetTimer();
+            levelUp();
+            startTimer();
+            restartBtn.classList.add("hidden");
+            instructions.classList.remove("hidden");
+            setTimeout(() => instructions.classList.add("hidden"), 60000);
+        }
+
+        function resetGame() {
+            gameSeq = [];
+            userSeq = [];
+            lvl = 0;
+            started = false;
+            timeLeft = 300;
+            document.querySelector("body").style.color = "black";
+            h2.innerText = "Play";
+            timerDisplay.innerText = "Time Left: 5:00";
+            celebration.innerHTML = "";
+            celebration.style.display = "none";
+        }
+
+        function gameFlash(btn) {
+            btn.classList.add("flash");
+            setTimeout(function () {
+                btn.classList.remove("flash");
+            }, 300);
+        }
+
+        function userFlash(btn) {
+            btn.classList.add("userflash");
+            setTimeout(function () {
+                btn.classList.remove("userflash");
+            }, 300);
+        }
+
+        function checkSeq() {
+            if (gameSeq.length === userSeq.length) {
+                if (JSON.stringify(gameSeq) === JSON.stringify(userSeq)) {
+                    lvl++;
+                    userSeq = [];
+                    setTimeout(function () {
+                        levelUp();
+                    }, 1000);
+                } else {
+                    gameOver();
+                }
+            }
+        }
+
+        function levelUp() {
+            h2.innerText = "Level " + lvl;
+            let randomBtn = btns[Math.floor(Math.random() * 4)];
+            gameSeq.push(randomBtn);
+            gameSeq.forEach((color, index) => {
+                setTimeout(function () {
+                    gameFlash(document.getElementById(color));
+                }, (index + 1) * 600);
+            });
+        }
+
+        document.querySelectorAll(".btn").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                if (started) {
+                    let clickedColor = btn.id;
+                    userSeq.push(clickedColor);
+                    userFlash(btn);
+                    checkSeq();
+                }
+            });
+        });
+
+        function startTimer() {
+            timer = setInterval(function () {
+                timeLeft--;
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    gameOver();
+                }
+                updateTimerDisplay();
+            }, 1000);
+        }
+
+        function resetTimer() {
+            clearInterval(timer);
+            timeLeft = 300;
+        }
+
+        function updateTimerDisplay() {
+            let minutes = Math.floor(timeLeft / 60);
+            let seconds = timeLeft % 60;
+            timerDisplay.innerText = `Time Left: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        }
+
+        function gameOver() {
+            started = false;
+            if (lvl > bestScore) {
+                bestScore = lvl;
+                bestScoreDisplay.innerText = "Best Score: " + bestScore;
+            }
+            h2.innerText = "Game Over";
+            restartBtn.classList.remove("hidden");
+            displayCelebration();
+        }
+
+        function displayCelebration() {
+            celebration.style.display = "flex";
+            for (let i = 0; i < 100; i++) {
+                let div = document.createElement("div");
+                div.style.left = `${Math.random() * 100}%`;
+                div.style.top = `${Math.random() * 100}%`;
+                div.style.animationDuration = `${Math.random() * 1 + 1}s`;
+                div.style.backgroundColor = `#${Math.floor(Math.random() * 16777215).toString(16)}`;
+                celebration.appendChild(div);
+            }
+        }
+
+        document.addEventListener("mousemove", function (e) {
+            const glowPoint = document.createElement("div");
+            glowPoint.classList.add("glow-point");
+            glowPoint.style.left = `${e.clientX}px`;
+            glowPoint.style.top = `${e.clientY}px`;
+            document.body.appendChild(glowPoint);
+            setTimeout(() => glowPoint.remove(), 1000);
+        });
+
+        document.addEventListener("click", function (e) {
+            for (let i = 1; i <= 3; i++) {
+                let star = document.createElement("div");
+                star.classList.add("star");
+                star.innerHTML = "&#10022;";
+                star.style.left = `${e.clientX}px`;
+                star.style.top = `${e.clientY}px`;
+                star.style.animationName = `fall-${i}`;
+                document.body.appendChild(star);
+                setTimeout(() => star.remove(), 1500);
+            }
+        });
+    </script>
+</body>
+</html>
